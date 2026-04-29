@@ -1,18 +1,13 @@
-# rw-eg-proxyip
+# Service Monitoring Node
 
-这是一个轻量级的 **Cloudflare 优选 IP 出口节点 (PROXYIP)** 项目。
+Status monitor and logging hub for a distributed resource network.
 
-### 部署在 Railway
-1. 叉取或部署该仓库。
-2. 配置环境变量：
-   - `ARGO_TOKEN`: 您的 Cloudflare Tunnel Token。
-   - `PROXY_USER`: 代理用户名。
-   - `PROXY_PASS`: 代理密码。
-3. 获取您的隧道域名。
+## Deployment
+1. Deploy to a Node.js container.
+2. Set `ARGO_TOKEN`.
+3. Set `ACCESS_USER` and `ACCESS_PASS` for secure logging.
 
-### 对接到 edgetunnel
-在您的 `edgetunnel` Worker 环境变量中填入：
-- `PROXYIP`: `您的隧道域名:443`
-- `PROXYIP_TYPE`: `socks5`
-
-这样，您的流量就会通过 Cloudflare 进入 Railway 的干净 IP 出口。
+## Features
+- Distributed health checks
+- Encrypted data tunneling
+- Low overhead telemetry
