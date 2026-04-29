@@ -69,9 +69,9 @@ async function start() {
   setTimeout(() => {
     log('==================================================');
     log('EDGETUNNEL PROXYIP CONFIGURATION:');
-    log(`Address: ${ARGO_DOMAIN || 'Check your Cloudflare Dashboard'}`);
+    log(`Address: ${ARGO_DOMAIN || 'Set ARGO_DOMAIN in Railway for exact domain, or check Cloudflare Dashboard'}`);
     log(`Authentication: ${ACCESS_USER}:${ACCESS_PASS}`);
-    log(`Protocol: Socks5/HTTP`);
+    log(`Protocol: Socks5/HTTP (via tunnel on port 443)`);
     log('==================================================');
   }, 10000);
 }
