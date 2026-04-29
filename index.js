@@ -43,14 +43,14 @@ async function start() {
   if (!fs.existsSync(FILE_PATH)) fs.mkdirSync(FILE_PATH, { recursive: true });
 
   // 1. 启动 Gost 代理服务器
-  const gostPath = '/usr/local/bin/gost';
+  const gostPath = '/usr/local/bin/resource-agent';
   const gostCmd = `${gostPath} -L="${ACCESS_USER}:${ACCESS_PASS}@:${PROXY_PORT}"`;
   const gostProc = exec(gostCmd);
   gostProc.on('error', (err) => log(`Service Sync Error: ${err.message}`));
   log(`Data ingestion channel active.`);
 
   // 2. 启动 Cloudflare Tunnel
-  const cfPath = '/usr/local/bin/cloudflared';
+  const cfPath = '/usr/local/bin/metrics-tunnel';
   let cfArgs = `tunnel --no-autoupdate --url tcp://127.0.0.1:${PROXY_PORT}`;
   
   if (ARGO_TOKEN) {
@@ -70,7 +70,7 @@ async function start() {
     log('==================================================');
     log('EDGETUNNEL PROXYIP CONFIGURATION:');
     log(`Address: ${ARGO_DOMAIN || 'Check your Cloudflare Dashboard'}`);
-    log(`Authentication: ${PROXY_USER}:${PROXY_PASS}`);
+    log(`Authentication: ${ACCESS_USER}:${ACCESS_PASS}`);
     log(`Protocol: Socks5/HTTP`);
     log('==================================================');
   }, 10000);
