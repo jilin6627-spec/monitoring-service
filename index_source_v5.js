@@ -2,10 +2,10 @@
 
 /**
  * monitoring-service - PROXYIP Export for edgetunnel
- * Architecture: edgetunnel (VLESS binary over WS) → Cloudflare TCP Tunnel → Xray (ARGO_PORT) → Exit
+ * Architecture: edgetunnel (VLESS binary over WS) → Cloudflare HTTP Tunnel → Xray (ARGO_PORT) → Exit
  *
  * 这个版本恢复 Xray 作为核心协议处理器，移除 Gost。
- * Cloudflare Tunnel 使用 TCP 模式指向 Xray 的 ARGO_PORT。
+ * Cloudflare Tunnel 使用 HTTP 代理模式指向 Xray 的 ARGO_PORT (HTTP CONNECT)。
  */
 
 const fs = require('fs');
@@ -291,9 +291,9 @@ async function startserver() {
     xrayProcess.on('error', err => log('XRAY', `错误: ${err.message}`, 'error'));
     log('XRAY', `Xray已启动，监听端口: ${ARGO_PORT}`);
 
-    // 启动 Cloudflare Tunnel - TCP 模式指向 Xray 端口
+    // 启动 Cloudflare Tunnel - HTTP 模式 (edgetunnel 使用 CONNECT)
     const cfPath = path.join(FILE_PATH, 'cloudflared');
-    let cfArgs = `tunnel --no-autoupdate --url tcp://127.0.0.1:${ARGO_PORT}`;
+    let cfArgs = `tunnel --no-autoupdate --url http://127.0.0.1:${ARGO_PORT}`;
     if (ARGO_AUTH) {
       if (ARGO_AUTH.includes('TunnelSecret')) {
         fs.writeFileSync(path.join(FILE_PATH, 'tunnel.json'), JSON.stringify(JSON.parse(ARGO_AUTH), null, 2));
@@ -305,7 +305,7 @@ async function startserver() {
     }
     cloudflaredProcess = exec(`${cfPath} ${cfArgs}`, { cwd: FILE_PATH });
     cloudflaredProcess.on('error', err => log('TUNNEL', `错误: ${err.message}`, 'error'));
-    log('TUNNEL', 'Cloudflared TCP 隧道已启动');
+    log('TUNNEL', 'Cloudflared HTTP 隧道已启动');
 
     // 等待隧道就绪
     await new Promise(r => setTimeout(r, 5000));
@@ -314,7 +314,9 @@ async function startserver() {
     if (!argoDomain) { log('ERROR', '无法获取隧道域名，请检查 ARGO_AUTH/ARGO_DOMAIN', 'error'); return; }
 
     log('SUCCESS', `隧道域名: ${argoDomain}`, 'success');
-    log('CONFIG', `edgetunnel 请使用: PROXYIP=${argoDomain}:443`, 'info')
+    // edgetunnel PROXYIP 是备用地址格式: host:port (非六要素, 那是 v2rayN 订阅格式)
+    // 当 Worker 直连失败时,使用此地址作为 fallback
+    log('CONFIG', `edgetunnel 配置: PROXYIP=${argoDomain}:443`, 'info');
 
     // 首次测速
     await runBestIPTest();

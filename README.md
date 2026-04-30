@@ -6,9 +6,9 @@ This service provides distributed health monitoring and secure data telemetry ba
 
 ```
 edgetunnel (VLESS binary over WS)
-    ↓ (WebSocket Upgrade)
-Cloudflare Edge (Native Protocol)
-    ↓ (TCP Tunnel: raw binary)
+    ↓ (WebSocket Upgrade → HTTP CONNECT)
+Cloudflare Edge (HTTP Proxy)
+    ↓ (HTTP Tunnel with CONNECT method)
 Railway Container (Xray on 127.0.0.1:8001)
     ↓ (Xray routing via fallbacks)
 Internet (BestIP Exit)
@@ -18,10 +18,11 @@ Internet (BestIP Exit)
 
 ## Cloudflare Tunnel Configuration
 
+**Important**: edgetunnel uses HTTP CONNECT via Cloudflare Workers. The Tunnel **must** be HTTP mode (not TCP).
+
 ### 1. Create Tunnel & Add Hostname
-- **Service Type**: TCP
-- **URL**: `127.0.0.1:8001`
-- **HTTP Settings**: 
+- **Service Type**: HTTP
+- **URL**: `http://127.0.0.1:8001`
 
 ### 2. Railway Environment Variables (Only 2 Required)
 
@@ -34,13 +35,17 @@ Internet (BestIP Exit)
 
 ### 3. edgetunnel Configuration
 
+Set **only** this variable in your edgetunnel Worker (wrangler.toml `[vars]`):
+
 | Variable | Value |
 | :--- | :--- |
-| `PROXYIP` | `yourdomain.com:443` |
+| `PROXYIP` | `<your-tunnel-domain>:443` |
+
+The monitoring service logs the correct `PROXYIP` value on startup based on your `ARGO_DOMAIN`.
 
 
 ---
 
 ## Notes
-- **No Railway port opening needed**: Only `PORT` (3000) is exposed for health checks. Xray port 8001 and fallback ports are internal, accessed via Cloudflare TCP Tunnel.
-- **"You reached the start of the range"**: Normal log from cloudflared — tunnel is working.
+- **No Railway port opening needed**: Only `PORT` (3000) is exposed for health checks. Xray port 8001 is internal, accessed via Cloudflare **HTTP** Tunnel.
+- **"You reached the start of the range"**: Normal log from cloudflard — tunnel is working.
