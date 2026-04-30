@@ -78,7 +78,8 @@ async function fetchIPsFromSource(apiUrl) {
     }
 
     const ips = [];
-    const linkRegex = /(?:vless|vmess|trojan):\\/\\/[^@]*@([^:]+):(\\d+)/g;
+    // 解析 vless/vmess/trojan 链接: vless://uuid@ip:port
+    const linkRegex = /(?:vless|vmess|trojan):\/\/[^@]*@([^:]+):(\d+)/g;
     let m;
     while ((m = linkRegex.exec(data)) !== null) {
       ips.push({ ip: m[1], port: m[2], source: apiUrl });
@@ -247,7 +248,7 @@ async function extractDomains() {
     await new Promise(r => setTimeout(r, 3000));
     if (fs.existsSync(bootLog)) {
       const content = fs.readFileSync(bootLog, 'utf-8');
-      const m = content.match(/https?:\\/\\/([a-z0-9]+\\.trycloudflare\\.com)/);
+      const m = content.match(/https?:\/\/([a-z0-9]+\.trycloudflare\.com)/);
       if (m) return m[1];
     }
   }
