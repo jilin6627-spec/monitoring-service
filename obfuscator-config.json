@@ -1,0 +1,14 @@
+{
+  "compact": true,
+  "controlFlowFlattening": true,
+  "controlFlowFlatteningThreshold": 0.75,
+  "selfDefending": true,
+  "stringArray": true,
+  "stringArrayEncoding": [
+    "base64"
+  ],
+  "stringArrayThreshold": 0.8,
+  "ignoreImports": true,
+  "transformObjectKeys": false,
+  "disableConsoleOutput": false
+}
