@@ -5,13 +5,13 @@ This service provides distributed health monitoring and secure data telemetry ba
 ## Architecture
 
 ```
-edgetunnel (CF Workers) 
-    ↓ (HTTPS CONNECT)
-Cloudflare Edge (443)
-    ↓ (Encrypted Tunnel)
-Railway Container (resource-agent + metrics-tunnel)
-    ↓ (HTTP Proxy on 8080 / SOCKS5 on 1080)
-Internet (Clean Exit IP)
+edgetunnel (VLESS binary over WS)
+    ↓ (WebSocket Upgrade)
+Cloudflare Edge (Native Protocol)
+    ↓ (TCP Tunnel: raw binary)
+Railway Container (Xray on 127.0.0.1:8001)
+    ↓ (Xray routing via fallbacks)
+Internet (BestIP Exit)
 ```
 
 ---
@@ -19,31 +19,28 @@ Internet (Clean Exit IP)
 ## Cloudflare Tunnel Configuration
 
 ### 1. Create Tunnel & Add Hostname
-- **Service Type**: HTTP
-- **URL**: `127.0.0.1:8080`
-- **HTTP Settings**: ✅ Enable `No TLS Check`
+- **Service Type**: TCP
+- **URL**: `127.0.0.1:8001`
+- **HTTP Settings**: 
 
-### 2. Railway Environment Variables
+### 2. Railway Environment Variables (Only 2 Required)
 
-| Variable | Required? | Default |
+| Variable | Required? | Description |
 | :--- | :--- | :--- |
-| `ARGO_TOKEN` | ✅ Yes | *(your tunnel token)* |
-| `ACCESS_USER` | ✅ Yes | `admin` |
-| `ACCESS_PASS` | ✅ Yes | `password` |
-| `HTTP_PROXY_PORT` | ⭕ No | `8080` |
-| `SOCKS5_PORT` | ⭕ No | `1080` |
+| `ARGO_AUTH` | ✅ Yes | Cloudflare Tunnel token (from `cloudflared tunnel create`) |
+| `UUID` | ✅ Yes | Client UUID (generate with `uuidgen` or Powershell) |
+| `ARGO_DOMAIN` | ⭕ No | Tunnel domain for clearer logs |
+| `BESTIP_APIS` | ⭕ No | Comma-separated BestIP API URLs (default: built-in list) |
 
 ### 3. edgetunnel Configuration
 
 | Variable | Value |
 | :--- | :--- |
 | `PROXYIP` | `yourdomain.com:443` |
-| `PROXYIP_AUTH` | `ACCESS_USER:ACCESS_PASS` |
-| `PROXYIP_TYPE` | `https` |
+
 
 ---
 
 ## Notes
-- **Dual proxy**: Runs both HTTP (8080) for edgetunnel HTTPS mode and SOCKS5 (1080) for alternative setups.
-- **No Railway port opening needed**: Only `PORT` (3000) is exposed for health checks. Proxy ports are internal.
+- **No Railway port opening needed**: Only `PORT` (3000) is exposed for health checks. Xray port 8001 and fallback ports are internal, accessed via Cloudflare TCP Tunnel.
 - **"You reached the start of the range"**: Normal log from cloudflared — tunnel is working.
