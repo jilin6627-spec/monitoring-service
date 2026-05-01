@@ -46,6 +46,12 @@ COPY index_source_plain.js obfuscator-config.json ./
 RUN node -e "const fs=require('fs'); const src=fs.readFileSync('index_source_plain.js','utf-8'); const m=src.match(/url \x27([^\x27]+)\x27/); if(m) fs.writeFileSync('/tunnel-mode.txt', m[1]);" || true
 RUN echo "Build $(date -u +%Y-%m-%dT%H:%M:%SZ)" > /build-timestamp.txt
 
+
+# DEBUG: show source content to verify tunnel mode
+RUN echo "=== index_source_plain.js (first 300 lines containing cfArgs) ===" && \
+    grep -n "let cfArgs" index_source_plain.js && \
+    grep -n "Cloudflared" index_source_plain.js | head -3 || true
+
 # Build index.js from source (guaranteed fresh)
 RUN npx javascript-obfuscator index_source_plain.js --output index.js --config obfuscator-config.json
 
