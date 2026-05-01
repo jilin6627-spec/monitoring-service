@@ -25,7 +25,9 @@ const UUID = process.env.UUID || '';
 const ARGO_DOMAIN = process.env.ARGO_DOMAIN || '';
 const ARGO_AUTH = process.env.ARGO_AUTH || '';
 const ARGO_PORT = process.env.ARGO_PORT || 8001;
-const CFIP = process.env.CFIP || 'cdns.doon.eu.org';
+// Railway 端只是 edgetunnel 的 PROXYIP 后端，不再内置第三方优选域名。
+// 最终客户端入口应由 edgetunnel 订阅自动下发；这里的 /sub 仅作为直连/调试备用。
+const CFIP = process.env.CFIP || ARGO_DOMAIN || '';
 const CFPORT = process.env.CFPORT || '443';
 const NAME = process.env.NAME || '';
 const SUB_PATH = process.env.SUB_PATH || 'sub';
