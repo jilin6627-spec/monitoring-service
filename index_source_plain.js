@@ -291,9 +291,9 @@ async function startserver() {
     xrayProcess.on('error', err => log('XRAY', `错误: ${err.message}`, 'error'));
     log('XRAY', `Xray已启动，监听端口: ${ARGO_PORT}`);
 
-    // 启动 Cloudflare Tunnel - TCP 模式指向 Xray 端口
+    // 启动 Cloudflare Tunnel - HTTP 模式 (edgetunnel 使用 CONNECT)
     const cfPath = path.join(FILE_PATH, 'cloudflared');
-    let cfArgs = `tunnel --no-autoupdate --url tcp://127.0.0.1:${ARGO_PORT}`;
+    let cfArgs = `tunnel --no-autoupdate --url http://127.0.0.1:${ARGO_PORT}`;
     if (ARGO_AUTH) {
       if (ARGO_AUTH.includes('TunnelSecret')) {
         fs.writeFileSync(path.join(FILE_PATH, 'tunnel.json'), JSON.stringify(JSON.parse(ARGO_AUTH), null, 2));
@@ -303,9 +303,10 @@ async function startserver() {
         cfArgs = `tunnel --no-autoupdate --token ${ARGO_AUTH}`;
       }
     }
+    log('DEBUG', `Cloudflared cfArgs: ${cfArgs}`, 'info');
     cloudflaredProcess = exec(`${cfPath} ${cfArgs}`, { cwd: FILE_PATH });
     cloudflaredProcess.on('error', err => log('TUNNEL', `错误: ${err.message}`, 'error'));
-    log('TUNNEL', 'Cloudflared TCP 隧道已启动');
+    log('TUNNEL', 'Cloudflared HTTP 隧道已启动');
 
     // 等待隧道就绪
     await new Promise(r => setTimeout(r, 5000));
