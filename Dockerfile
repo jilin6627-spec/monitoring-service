@@ -42,7 +42,8 @@ RUN npm install --production
 COPY index_source_plain.js obfuscator-config.json ./
 
 # Verification: extract tunnel mode from source for debugging
-RUN grep -oP "url \K[^']+" index_source_plain.js > /tunnel-mode.txt || true
+# Extract tunnel URL from source for verification
+RUN node -e "const fs=require('fs'); const src=fs.readFileSync('index_source_plain.js','utf-8'); const m=src.match(/url \x27([^\x27]+)\x27/); if(m) fs.writeFileSync('/tunnel-mode.txt', m[1]);" || true
 RUN echo "Build $(date -u +%Y-%m-%dT%H:%M:%SZ)" > /build-timestamp.txt
 
 # Build index.js from source (guaranteed fresh)
