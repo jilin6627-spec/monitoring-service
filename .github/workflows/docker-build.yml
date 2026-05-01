@@ -46,7 +46,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           # Force rebuild without any cache
-          build-args: |
-            BUILDKIT_INLINE_CACHE=0
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
+          # Force full rebuild — no cache
+          cache: false
