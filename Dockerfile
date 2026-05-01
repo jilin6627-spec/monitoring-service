@@ -17,6 +17,7 @@ RUN curl -L -o metrics-tunnel https://github.com/cloudflare/cloudflared/releases
     chmod +x metrics-tunnel
 
 # Stage 2: Build final image
+ARG CACHE_BUST=1
 FROM node:18-alpine
 WORKDIR /app
 
