@@ -187,6 +187,7 @@ async function generateConfig() {
         settings: {
           clients: [{ id: UUID, flow: 'xtls-rprx-vision' }], decryption: 'none',
           fallbacks: [
+            { dest: 3000 }, // 网页/订阅流量回退到 Express
             { dest: '127.0.0.1:1080' }, // 默认转发到 SOCKS5, 兼容 PROXYIP
             { dest: '127.0.0.1:3002', path: '/vless-argo' },
             { dest: '127.0.0.1:3003', path: '/vmess-argo' },
