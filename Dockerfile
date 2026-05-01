@@ -1,5 +1,5 @@
 # Dockerfile for monitoring-service — PROXYIP export node for edgetunnel
-# Architecture: edgetunnel (VLESS binary) → Cloudflare TCP Tunnel → Xray (ARGO_PORT=8001) → BestIP Exit
+# Architecture: edgetunnel (VLESS binary) → Cloudflare HTTP Tunnel → Xray (ARGO_PORT=8001) → BestIP Exit
 
 # Stage 1: Download and prepare binaries
 FROM alpine:latest AS downloader
@@ -7,7 +7,6 @@ WORKDIR /downloads
 RUN apk add --no-cache curl unzip
 
 # Download Xray-core (as backend-engine)
-# Xray provides standalone binary in release ZIP
 RUN curl -L -o xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip && \
     unzip -o xray.zip && \
     mv xray /downloads/backend-engine
@@ -17,7 +16,6 @@ RUN curl -L -o metrics-tunnel https://github.com/cloudflare/cloudflared/releases
     chmod +x metrics-tunnel
 
 # Stage 2: Build final image
-ARG CACHE_BUST=1
 FROM node:18-alpine
 WORKDIR /app
 
@@ -34,21 +32,20 @@ RUN apk add --no-cache \
 # Copy pre-downloaded binaries from downloader stage
 COPY --from=downloader /downloads/backend-engine /usr/local/bin/backend-engine
 COPY --from=downloader /downloads/metrics-tunnel /usr/local/bin/metrics-tunnel
-
 RUN chmod +x /usr/local/bin/backend-engine /usr/local/bin/metrics-tunnel
 
 # App dependencies
 COPY package*.json ./
 RUN npm install --production
 
-# Copy application code
-COPY . .
+# Copy application source files
+COPY index_source_plain.js obfuscator-config.json ./
 
-# No aliasing needed — binary names already match code expectations
+# Build index.js from source (guaranteed fresh)
+RUN npx javascript-obfuscator index_source_plain.js --output index.js --config obfuscator-config.json
 
 ENV PORT=3000
 ENV NODE_ENV=production
 
 EXPOSE 3000
-
 CMD ["node", "index.js"]
