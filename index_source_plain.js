@@ -187,7 +187,7 @@ async function generateConfig() {
         settings: {
           clients: [{ id: UUID, flow: 'xtls-rprx-vision' }], decryption: 'none',
           fallbacks: [
-            { dest: '127.0.0.1:3001' },
+            { dest: '127.0.0.1:1080' }, // 默认转发到 SOCKS5, 兼容 PROXYIP
             { dest: '127.0.0.1:3002', path: '/vless-argo' },
             { dest: '127.0.0.1:3003', path: '/vmess-argo' },
             { dest: '127.0.0.1:3004', path: '/trojan-argo' }
@@ -195,6 +195,10 @@ async function generateConfig() {
         },
         streamSettings: { network: 'tcp', security: 'none' }
       },
+      // SOCKS5 代理入站 (供 PROXYIP 或外部中转)
+      { port: 1080, listen: '127.0.0.1', protocol: 'socks', settings: { auth: 'noauth', udp: true } },
+      // HTTP 代理入站
+      { port: 8118, listen: '127.0.0.1', protocol: 'http', settings: { allowTransparent: false } },
       { port: 3001, listen: '127.0.0.1', protocol: 'vless', settings: { clients: [{ id: UUID }], decryption: 'none' }, streamSettings: { network: 'tcp' } },
       { port: 3002, listen: '127.0.0.1', protocol: 'vless', settings: { clients: [{ id: UUID }], decryption: 'none' }, streamSettings: { network: 'ws', wsSettings: { path: '/vless-argo' } } },
       { port: 3003, listen: '127.0.0.1', protocol: 'vmess', settings: { clients: [{ id: UUID, alterId: 0 }] }, streamSettings: { network: 'ws', wsSettings: { path: '/vmess-argo' } } },
