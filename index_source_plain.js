@@ -193,7 +193,8 @@ async function generateConfig() {
             { dest: '127.0.0.1:3004', path: '/trojan-argo' }
           ]
         },
-        streamSettings: { network: 'tcp', security: 'none' }
+        streamSettings: { network: 'tcp', security: 'none' },
+        sniffing: { enabled: true, destOverride: ["http", "tls"] }
       },
       // SOCKS5 代理入站 (供 PROXYIP 或外部中转)
       { port: 1080, listen: '127.0.0.1', protocol: 'socks', settings: { auth: 'noauth', udp: true } },
@@ -299,9 +300,9 @@ async function startserver() {
     xrayProcess.stderr?.on('data', data => String(data).trim().split('\n').filter(Boolean).forEach(line => log('XRAY', line, 'warn')));
     log('XRAY', `Xray已启动，监听端口: ${ARGO_PORT}`);
 
-    // 启动 Cloudflare Tunnel - HTTP 模式 (edgetunnel 使用 CONNECT)
+    // 启动 Cloudflare Tunnel - TCP 模式 (透传所有协议)
     const cfPath = path.join(FILE_PATH, 'cloudflared');
-    let cfArgs = `tunnel --no-autoupdate --url http://127.0.0.1:${ARGO_PORT}`;
+    let cfArgs = `tunnel --no-autoupdate --url tcp://127.0.0.1:${ARGO_PORT}`;
     if (ARGO_AUTH) {
       if (ARGO_AUTH.includes('TunnelSecret')) {
         fs.writeFileSync(path.join(FILE_PATH, 'tunnel.json'), JSON.stringify(JSON.parse(ARGO_AUTH), null, 2));
