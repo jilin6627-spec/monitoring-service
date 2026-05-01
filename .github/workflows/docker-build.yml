@@ -53,4 +53,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           # Force rebuild without any cache
           # Force full rebuild — no cache
-          cache: false
+          no-cache: true
