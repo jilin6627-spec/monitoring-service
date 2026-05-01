@@ -267,23 +267,41 @@ async function extractDomains() {
 async function generateLinks(argoDomain, entryIP) {
   const ISP = await getMetaInfo();
   const nodeName = NAME ? `${NAME}-${ISP}` : ISP;
-  const ip = entryIP || currentBestIP;
+  
+  // 综合 IP 列表：测速结果 + 兜底域名
+  const targetIPs = [];
+  if (entryIP) targetIPs.push(entryIP);
+  bestIPResults.forEach(r => { if (r.ip !== entryIP) targetIPs.push(r.ip); });
+  if (targetIPs.length === 0) targetIPs.push(CFIP || 'cdns.doon.eu.org');
 
-  const vless = `vless://${UUID}@${ip}:${CFPORT}?encryption=none&security=tls&sni=${argoDomain}&fp=firefox&type=ws&host=${argoDomain}&path=${encodeURIComponent('/vless-argo?ed=2560')}#${encodeURIComponent(nodeName)}`;
-  const vmessObj = { v: '2', ps: nodeName, add: ip, port: CFPORT, id: UUID, aid: 0, net: 'ws', type: 'none', host: argoDomain, path: '/vmess-argo', tls: 'tls', sni: argoDomain, fp: 'firefox' };
-  const vmess = `vmess://${Buffer.from(JSON.stringify(vmessObj)).toString('base64')}`;
-  const trojan = `trojan://${UUID}@${ip}:${CFPORT}?security=tls&sni=${argoDomain}&fp=firefox&type=ws&host=${argoDomain}&path=${encodeURIComponent('/trojan-argo?ed=2560')}#${encodeURIComponent(nodeName)}`;
-
-  let allLinks = `${vless}\n${vmess}\n${trojan}\n`;
-  const subB64 = Buffer.from(allLinks).toString('base64');
-  fs.writeFileSync(path.join(FILE_PATH, 'sub.txt'), subB64);
-
-  app.get(`/${SUB_PATH}`, (req, res) => {
-    res.set('Content-Type', 'text/plain; charset=utf-8');
-    try { res.send(fs.readFileSync(path.join(FILE_PATH, 'sub.txt'), 'utf-8')); }
-    catch (e) { res.send(subB64); }
+  let allLinks = '';
+  targetIPs.slice(0, 10).forEach((ip, idx) => {
+    const suf = idx === 0 ? ' [推荐]' : ` [备用${idx}]`;
+    const name = `${nodeName}${suf}`;
+    
+    // VLESS WS 链接 (最稳定)
+    const vless = `vless://${UUID}@${ip}:${CFPORT}?encryption=none&security=tls&sni=${argoDomain}&fp=firefox&type=ws&host=${argoDomain}&path=${encodeURIComponent('/vless-argo?ed=2560')}#${encodeURIComponent(name)}`;
+    // VMess WS 链接
+    const vmessObj = { v: '2', ps: name, add: ip, port: CFPORT, id: UUID, aid: 0, net: 'ws', type: 'none', host: argoDomain, path: '/vmess-argo', tls: 'tls', sni: argoDomain, fp: 'firefox' };
+    const vmess = `vmess://${Buffer.from(JSON.stringify(vmessObj)).toString('base64')}`;
+    
+    allLinks += `${vless}\n${vmess}\n`;
   });
+
+  return Buffer.from(allLinks).toString('base64');
 }
+
+// ========== 10. 路由挂载 (修正 /sub 问题) ==========
+app.get(`/${SUB_PATH}`, async (req, res) => {
+  res.set('Content-Type', 'text/plain; charset=utf-8');
+  try {
+    const argoDomain = ARGO_DOMAIN || await extractDomains() || 'fail.trycloudflare.com';
+    const subContent = await generateLinks(argoDomain, currentBestIP);
+    res.send(subContent);
+  } catch (e) {
+    res.status(500).send('Subscription Generation Error');
+  }
+});
 
 // ========== 10. 主程序 ==========
 async function startserver() {
@@ -329,9 +347,8 @@ async function startserver() {
     log('SUCCESS', `隧道域名: ${argoDomain}`, 'success');
     log('CONFIG', `edgetunnel 请使用: PROXYIP=${argoDomain}:443`, 'info')
 
-    // 首次测速
-    await runBestIPTest();
-    await generateLinks(argoDomain, currentBestIP);
+    // 首次测速 (不再阻塞 generateLinks)
+    runBestIPTest();
 
     // 定时任务
     setInterval(() => runBestIPTest(), BESTIP_INTERVAL);
