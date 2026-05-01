@@ -20,6 +20,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Debug - Show commit info
+        run: |
+          echo "Commit: $(git rev-parse HEAD)"
+          echo "Date: $(git log -1 --format=%ci)"
+          grep -n "url http" index_source_plain.js || echo "NOT FOUND"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
