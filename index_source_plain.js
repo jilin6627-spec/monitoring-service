@@ -20,7 +20,7 @@ const app = express();
 
 // ========== 1. 环境变量 ==========
 const PORT = process.env.PORT || 3000;
-const FILE_PATH = process.env.FILE_PATH || './tmp';
+const FILE_PATH = path.resolve(process.env.FILE_PATH || './tmp');
 const UUID = process.env.UUID || '';
 const ARGO_DOMAIN = process.env.ARGO_DOMAIN || '';
 const ARGO_AUTH = process.env.ARGO_AUTH || '';
@@ -289,6 +289,8 @@ async function startserver() {
     const xrayPath = path.join(FILE_PATH, 'xray');
     xrayProcess = exec(`${xrayPath} -c ${path.join(FILE_PATH, 'config.json')}`, { cwd: FILE_PATH });
     xrayProcess.on('error', err => log('XRAY', `错误: ${err.message}`, 'error'));
+    xrayProcess.stdout?.on('data', data => String(data).trim().split('\n').filter(Boolean).forEach(line => log('XRAY', line)));
+    xrayProcess.stderr?.on('data', data => String(data).trim().split('\n').filter(Boolean).forEach(line => log('XRAY', line, 'warn')));
     log('XRAY', `Xray已启动，监听端口: ${ARGO_PORT}`);
 
     // 启动 Cloudflare Tunnel - HTTP 模式 (edgetunnel 使用 CONNECT)
@@ -300,12 +302,14 @@ async function startserver() {
         fs.writeFileSync(path.join(FILE_PATH, 'tunnel.yml'), `tunnel: ${JSON.parse(ARGO_AUTH).Tunnel}\ncredentials-file: ${path.join(FILE_PATH, 'tunnel.json')}\n`);
         cfArgs = `tunnel --no-autoupdate --config ${path.join(FILE_PATH, 'tunnel.yml')}`;
       } else {
-        cfArgs = `tunnel --no-autoupdate --token ${ARGO_AUTH}`;
+        cfArgs = `tunnel --no-autoupdate run --token ${ARGO_AUTH}`;
       }
     }
     log('DEBUG', `Cloudflared cfArgs: ${cfArgs}`, 'info');
     cloudflaredProcess = exec(`${cfPath} ${cfArgs}`, { cwd: FILE_PATH });
     cloudflaredProcess.on('error', err => log('TUNNEL', `错误: ${err.message}`, 'error'));
+    cloudflaredProcess.stdout?.on('data', data => String(data).trim().split('\n').filter(Boolean).forEach(line => log('TUNNEL', line)));
+    cloudflaredProcess.stderr?.on('data', data => String(data).trim().split('\n').filter(Boolean).forEach(line => log('TUNNEL', line, 'warn')));
     log('TUNNEL', 'Cloudflared HTTP 隧道已启动');
 
     // 等待隧道就绪
