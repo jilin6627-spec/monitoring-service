@@ -41,8 +41,17 @@ RUN npm install --production
 # Copy application source files
 COPY index_source_plain.js obfuscator-config.json ./
 
+# Verification: extract tunnel mode from source for debugging
+RUN grep -oP "url \K[^']+" index_source_plain.js > /tunnel-mode.txt || true
+RUN echo "Build $(date -u +%Y-%m-%dT%H:%M:%SZ)" > /build-timestamp.txt
+
 # Build index.js from source (guaranteed fresh)
 RUN npx javascript-obfuscator index_source_plain.js --output index.js --config obfuscator-config.json
+
+# Verification: extract tunnel mode from source for debugging
+# This creates a marker file visible in the final image
+RUN grep -oP "url \K[^']+" index_source_plain.js > /tunnel-mode.txt || true
+RUN echo "Build completed" > /build-done.txt
 
 ENV PORT=3000
 ENV NODE_ENV=production
